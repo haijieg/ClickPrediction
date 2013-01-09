@@ -1,4 +1,5 @@
 package edu.uw.cs.biglearn.clickprediction.preprocess;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -9,70 +10,95 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 /**
+ * 
  * Temporary storage class for loading features from separate feature files:
- * Each feature file represented as an ArrayList of a token (integer) set,
- * the index of the array is the id of the feature.
- *  
+ * Each feature file represented as an ArrayList of a token (integer) set, the
+ * index of the array is the id of the feature.
+ * 
  * @author haijieg
  * 
  */
 public class Features {
 	public static ArrayList<Set<Integer>> descriptionFeature;
-	public static ArrayList<Set<Integer>> keywordFeature;		
+	public static ArrayList<Set<Integer>> keywordFeature;
 	public static ArrayList<Set<Integer>> queryFeature;
 	public static ArrayList<Set<Integer>> titleFeature;
-	
-  /**
-   * Load query, keywork, title and description features.
-   * Path to the feature file is hard coded.
-   * Size of each feature file is hard coded.
-   * 
-   * @return
-   * 
-   */
+	public static ArrayList<int[]> userFeature;
+
+	/**
+	 * Load query, keywork, title and description features. Path to the feature
+	 * file is hard coded. Size of each feature file is hard coded.
+	 * 
+	 * @return
+	 * 
+	 */
 	public static boolean loadAllFeatures() {
 		String basepath = "/usr1/haijieg/kdd/features/";
+		//String basepath = "/Users/haijieg/workspace/kdd2012/features/";		
 		descriptionFeature = new ArrayList<Set<Integer>>(3171830);
 		titleFeature = new ArrayList<Set<Integer>>(4051441);
 		queryFeature = new ArrayList<Set<Integer>>(26243606);
 		keywordFeature = new ArrayList<Set<Integer>>(1249785);
+		userFeature = new ArrayList<int[]>(23669284);
 		try {
-			loadFeature(basepath + "descriptionid_tokensid.txt", descriptionFeature);
-			loadFeature(basepath + "titleid_tokensid.txt", titleFeature);
-			loadFeature(basepath + "purchasedkeywordid_tokensid.txt", keywordFeature);
-			loadFeature(basepath + "queryid_tokensid.txt", queryFeature);
+			loadUserFeature(basepath + "userid_profile.txt", userFeature);
+			loadTokenFeature(basepath + "descriptionid_tokensid.txt",
+					descriptionFeature);
+			loadTokenFeature(basepath + "titleid_tokensid.txt", titleFeature);
+			loadTokenFeature(basepath + "purchasedkeywordid_tokensid.txt",
+					keywordFeature);
+			loadTokenFeature(basepath + "queryid_tokensid.txt", queryFeature);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
 		}
 		return true;
 	}
-
-/**
- * Load feature file from the given path.
- * @param path
- * @param feature
- * @throws FileNotFoundException
- */  
-	private static void loadFeature (String path, ArrayList<Set<Integer>> feature) throws FileNotFoundException {
-		System.err.println("Loading feature from "+ path);
-			Scanner sc = new Scanner(new BufferedReader (new FileReader(path)));
-			int line = 0;
-			while(sc.hasNextLine()) {
-				feature.add(parseFeature(sc.nextLine()));
-				line++;
-				if (line % 1000000 == 0)
-					System.err.println("Loaded " + line  +" lines");
-			}
-			System.err.println("Done");			
-	}
 	
-  /**
-   * Parse a "|" separated token list into a set representing binary indicators. 
-   * @param line
-   * @return A set of tokens
-   */
-	private static Set<Integer> parseFeature (String line) {
+	private static void loadUserFeature(String path, ArrayList<int[]> feature) throws FileNotFoundException {
+		feature.add(new int[]{0,0}); // userid starts at 1, so user0 is undefined
+		System.err.println("Loading feature from " + path);
+		Scanner sc = new Scanner(new BufferedReader(new FileReader(path)));
+		int line = 0;
+		while (sc.hasNextLine()) {
+			String[] fields = sc.nextLine().split("\t");
+			feature.add(new int[]{Integer.parseInt(fields[1]), Integer.parseInt(fields[2])});
+			line++;
+			if (line % 1000000 == 0)
+				System.err.println("Loaded " + line + " lines");
+		}
+		System.err.println("Done");
+	}
+
+	/**
+	 * Load feature file from the given path.
+	 * 
+	 * @param path
+	 * @param feature
+	 * @throws FileNotFoundException
+	 */
+	private static void loadTokenFeature(String path, ArrayList<Set<Integer>> feature)
+			throws FileNotFoundException {
+		System.err.println("Loading feature from " + path);
+		Scanner sc = new Scanner(new BufferedReader(new FileReader(path)));
+		int line = 0;
+		while (sc.hasNextLine()) {
+			feature.add(parseFeature(sc.nextLine()));
+			line++;
+			if (line % 1000000 == 0)
+				System.err.println("Loaded " + line + " lines");
+		}
+		System.err.println("Done");
+	}
+
+	/**
+	 * Parse a "|" separated token list into a set representing binary
+	 * indicators.
+	 * 
+	 * @param line
+	 * @return A set of tokens
+	 */
+	private static Set<Integer> parseFeature(String line) {
 		StringTokenizer tokenizer = new StringTokenizer(line);
 		Set<Integer> words = new HashSet<Integer>(3);
 		String id = tokenizer.nextToken();
@@ -82,10 +108,10 @@ public class Features {
 		}
 		return words;
 	}
-	
-  /**
-   * For testing...
-   */
+
+	/**
+	 * For testing...
+	 */
 	public static void main(String[] args) {
 		Features.loadAllFeatures();
 	}
