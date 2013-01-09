@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
@@ -39,7 +40,7 @@ public class Features {
 		titleFeature = new ArrayList<Set<Integer>>(4051441);
 		queryFeature = new ArrayList<Set<Integer>>(26243606);
 		keywordFeature = new ArrayList<Set<Integer>>(1249785);
-		userFeature = new ArrayList<int[]>(23669284);
+		userFeature = new ArrayList<int[]>(23907635);
 		try {
 			loadUserFeature(basepath + "userid_profile.txt", userFeature);
 			loadTokenFeature(basepath + "descriptionid_tokensid.txt",
@@ -56,13 +57,15 @@ public class Features {
 	}
 	
 	private static void loadUserFeature(String path, ArrayList<int[]> feature) throws FileNotFoundException {
-		feature.add(new int[]{0,0}); // userid starts at 1, so user0 is undefined
+		for (int i = 0; i < 23907635; i++)
+			userFeature.add(new int[]{0,0});
 		System.err.println("Loading feature from " + path);
 		Scanner sc = new Scanner(new BufferedReader(new FileReader(path)));
 		int line = 0;
 		while (sc.hasNextLine()) {
 			String[] fields = sc.nextLine().split("\t");
-			feature.add(new int[]{Integer.parseInt(fields[1]), Integer.parseInt(fields[2])});
+			int uid = Integer.parseInt(fields[0]);
+			feature.set(uid, new int[]{Integer.parseInt(fields[1]), Integer.parseInt(fields[2])});
 			line++;
 			if (line % 1000000 == 0)
 				System.err.println("Loaded " + line + " lines");

@@ -54,6 +54,8 @@ public class JoinFeatureWithData {
 		tokenizer.nextToken(); // ignore AdvertiserID
 		filteredTokens.add(tokenizer.nextToken()); // push depth
 		filteredTokens.add(tokenizer.nextToken()); // push position
+
+		// replace query id with query tokens		
 		int queryid = Integer.valueOf(tokenizer.nextToken().trim());
 		if (queryid < Features.queryFeature.size()) {
 			filteredTokens.add(StringUtil.implode(Features.queryFeature.get(queryid)
@@ -63,7 +65,8 @@ public class JoinFeatureWithData {
 			System.err.println("Warning: unknown queryid=" + queryid);
 			System.err.println("Line: " + line);
 		}
-		// replace query id with query tokens
+
+		// replace keyword id with keyword tokens		
 		int keywordid = Integer.valueOf(tokenizer.nextToken().trim());
 		if (keywordid < Features.keywordFeature.size()) {
 			filteredTokens.add(StringUtil.implode(Features.keywordFeature.get(keywordid)
@@ -73,7 +76,8 @@ public class JoinFeatureWithData {
 			System.err.println("Warning: unknown keyword id=" + keywordid);
 			System.err.println("Line: " + line);
 		}
-		// replace keyword id with keyword tokens
+		
+		// replace title id with title tokens		
 		int titleid = Integer.valueOf(tokenizer.nextToken().trim());
 		if (titleid < Features.titleFeature.size()) {
 			filteredTokens.add(StringUtil.implode(Features.titleFeature.get(titleid)
@@ -84,7 +88,7 @@ public class JoinFeatureWithData {
 			System.err.println("Line: " + line);
 		}
 
-		// replace title id with title tokens
+		// replace description id with description tokens.
 		int descriptionid = Integer.valueOf(tokenizer.nextToken().trim());
 		if (descriptionid < Features.descriptionFeature.size()) {
 			filteredTokens.add(StringUtil.implode(
@@ -100,12 +104,12 @@ public class JoinFeatureWithData {
 		// replace description id with description tokens
 		int userid = Integer.valueOf(tokenizer.nextToken().trim());
 		if (userid < Features.userFeature.size()) {
-			filteredTokens.add(StringUtil.implode(
+			filteredTokens.add(userid + "," + StringUtil.implode(
 					Features.userFeature.get(userid), ","));
 		} else {
-			filteredTokens.add("0,0");
+			filteredTokens.add(userid+",0,0");
 			System.err.println("Warning: unknown userid="
-					+ descriptionid);
+					+ userid);
 			System.err.println("Line: " + line);
 		}
 		return filteredTokens;
