@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
@@ -35,7 +34,7 @@ public class Features {
 	 */
 	public static boolean loadAllFeatures() {
 		String basepath = "/usr1/haijieg/kdd/features/";
-		//String basepath = "/Users/haijieg/workspace/kdd2012/features/";		
+		// String basepath = "/Users/haijieg/workspace/kdd2012/features/";
 		descriptionFeature = new ArrayList<Set<Integer>>(3171830);
 		titleFeature = new ArrayList<Set<Integer>>(4051441);
 		queryFeature = new ArrayList<Set<Integer>>(26243606);
@@ -55,17 +54,21 @@ public class Features {
 		}
 		return true;
 	}
-	
-	private static void loadUserFeature(String path, ArrayList<int[]> feature) throws FileNotFoundException {
+
+	private static void loadUserFeature(String path, ArrayList<int[]> feature)
+			throws FileNotFoundException {
 		for (int i = 0; i < 23907635; i++)
-			userFeature.add(new int[]{0,0});
+			userFeature.add(new int[] { 0, 0 });
 		System.err.println("Loading feature from " + path);
 		Scanner sc = new Scanner(new BufferedReader(new FileReader(path)));
 		int line = 0;
 		while (sc.hasNextLine()) {
 			String[] fields = sc.nextLine().split("\t");
 			int uid = Integer.parseInt(fields[0]);
-			feature.set(uid, new int[]{Integer.parseInt(fields[1]), Integer.parseInt(fields[2])});
+			feature.set(
+					uid,
+					new int[] { Integer.parseInt(fields[1]),
+							Integer.parseInt(fields[2]) });
 			line++;
 			if (line % 1000000 == 0)
 				System.err.println("Loaded " + line + " lines");
@@ -80,8 +83,8 @@ public class Features {
 	 * @param feature
 	 * @throws FileNotFoundException
 	 */
-	private static void loadTokenFeature(String path, ArrayList<Set<Integer>> feature)
-			throws FileNotFoundException {
+	private static void loadTokenFeature(String path,
+			ArrayList<Set<Integer>> feature) throws FileNotFoundException {
 		System.err.println("Loading feature from " + path);
 		Scanner sc = new Scanner(new BufferedReader(new FileReader(path)));
 		int line = 0;

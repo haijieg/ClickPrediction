@@ -14,7 +14,7 @@ public final class StringUtil {
 		}
 		return builder.toString();
 	}
-	
+
 	/* Helper function imploding an int array into a single string. */
 	public static String implode(int[] arr, String delim) {
 		StringBuilder builder = new StringBuilder();
