@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Scanner;
 
 public class LogisticRegressionWithHashing {
@@ -30,21 +31,21 @@ public class LogisticRegressionWithHashing {
 	}
 
 	private double computeWeightFeatureProduct(Weights weights,
-			int[] hashedfeature) {
-		// Hash each feature into the hashed space;
+			Map<Integer, Integer> hashedfeature) {
 		double prod = weights.w0;
-		for (int i = 0; i < weights.dim; i++)
-			prod += weights.ws[i] * hashedfeature[i];
+		for (Map.Entry<Integer, Integer> entry: hashedfeature.entrySet()) {
+			prod += weights.ws[entry.getKey()] * entry.getValue();
+		}
 		return prod;
 	}
 
-	private void updateWeights(Weights weights, int[] features, double step,
+	private void updateWeights(Weights weights, Map<Integer, Integer> hashedfeature, double step,
 			double grad, double lambda) {
 		weights.w0 += -step * grad;
 		// update weights along the negative gradient
-		for (int i = 0; i < weights.dim; i++) {
-			weights.ws[i] += -step
-					* (grad * features[i] + lambda * weights.ws[i]);
+		for (Map.Entry<Integer, Integer> entry: hashedfeature.entrySet()) {
+			int key = entry.getKey();
+			weights.ws[key] += -step * (grad * entry.getValue() + lambda * weights.ws[key]);
 		}
 	}
 
@@ -136,7 +137,7 @@ public class LogisticRegressionWithHashing {
 	}
 
 	public static void main(String args[]) throws IOException {
-		boolean personal = true;
+		boolean personal = false;
 		int training_size = personal ? DataSet.TRAININGSIZE
 				: DataSet.TESTINGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
@@ -150,8 +151,8 @@ public class LogisticRegressionWithHashing {
 		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegressionWithHashing lr = new LogisticRegressionWithHashing();
 		double step = 0.01;
-		double lambda = 0.05;
-		int[] dims = { 97, 1543, 12289 };
+		double lambda = 0.02;
+		int[] dims = {97, 12289, 1572869};
 		for (int dim : dims) {
 			System.err.println("Running dim = " + dim);
 			String ofname = "/Users/haijieg/workspace/kdd2012/experiments/hashing";

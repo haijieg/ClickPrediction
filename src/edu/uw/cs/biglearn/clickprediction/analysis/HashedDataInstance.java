@@ -1,5 +1,8 @@
 package edu.uw.cs.biglearn.clickprediction.analysis;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import edu.uw.cs.biglearn.clickprediction.util.HashUtil;
 
 public class HashedDataInstance {
@@ -8,7 +11,7 @@ public class HashedDataInstance {
 	int impressions;
 
 	int featuredim; // the size of the hashed feature space.
-	int[] hashedFeature; // An array storing the value of the hashed feature.
+	Map<Integer, Integer> hashedFeature; // map hashed feature key to its value;
 
 	public HashedDataInstance(String line, boolean hasLabel, int dim,
 			boolean personal) {
@@ -40,7 +43,7 @@ public class HashedDataInstance {
 		 * Fill in your code here to create a hashedFeature.
 		 */
 		this.featuredim = dim;
-		hashedFeature = new int[dim];
+		hashedFeature = new HashMap<Integer, Integer>();
 		updateFeature("age", age);
 		updateFeature("gender", gender);
 		updateFeature("depth", depth);
@@ -81,7 +84,11 @@ public class HashedDataInstance {
 	 * @param val
 	 */
 	private void updateFeature(String key, int val) {
-		hashedFeature[HashUtil.hashToRange(key, featuredim)] += HashUtil
-				.hashToSign(key) * val;
+		int hashedkey = HashUtil.hashToRange(key, featuredim);
+		int hashedval = HashUtil.hashToSign(key) * val;
+		Integer oldvalue = hashedFeature.get(hashedkey);
+		if (oldvalue == null)
+			oldvalue = 0;
+		hashedFeature.put(hashedkey, oldvalue + hashedval);		
 	}
 }
