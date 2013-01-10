@@ -137,9 +137,10 @@ public class LogisticRegressionWithHashing {
 	}
 
 	public static void main(String args[]) throws IOException {
-		boolean personal = false;
+		boolean personal = true;
 		int training_size = personal ? DataSet.TRAININGSIZE
 				: DataSet.TESTINGSIZE;
+		training_size = (int) (DataSet.TESTINGSIZE * 5);
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
@@ -151,8 +152,8 @@ public class LogisticRegressionWithHashing {
 		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegressionWithHashing lr = new LogisticRegressionWithHashing();
 		double step = 0.01;
-		double lambda = 0.02;
-		int[] dims = {97, 12289, 1572869};
+		double lambda = 0;
+		int[] dims = {1572869};
 		for (int dim : dims) {
 			System.err.println("Running dim = " + dim);
 			String ofname = "/Users/haijieg/workspace/kdd2012/experiments/hashing";

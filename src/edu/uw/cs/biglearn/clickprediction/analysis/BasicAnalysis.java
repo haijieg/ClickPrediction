@@ -119,7 +119,7 @@ public class BasicAnalysis {
 		int size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
-				true, DataSet.TRAININGSIZE);
+				true, DataSet.TESTINGSIZE);
 		DataSet testing = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
 				false, size);
@@ -127,20 +127,20 @@ public class BasicAnalysis {
 
 		System.out.println("Average CTR: " + analyzer.averageCtr(training));
 
-		analyzer.findPopularInstance(training);
-		Set<Integer> traintokens = analyzer.uniqTokens(training);
-		Set<Integer> testtokens = analyzer.uniqTokens(testing);
-
-		System.out.println("Training set unique tokens: " + traintokens.size());
-		System.out.println("Testing set unique tokens: " + testtokens.size());
-		traintokens.retainAll(testtokens);
-		System.out.println("Tokens in common: " + traintokens.size());
-
-		Set<Integer> trainUsers = analyzer.uniqUsers(training);
-		Set<Integer> testUsers = analyzer.uniqUsers(testing);
-		System.out.println("Training set unique users: " + trainUsers.size());
-		System.out.println("Testing set unique users: " + testUsers.size());
-		trainUsers.retainAll(testUsers);
-		System.out.println("Users in common: " + trainUsers.size());
+//		analyzer.findPopularInstance(training);
+//		Set<Integer> traintokens = analyzer.uniqTokens(training);
+//		Set<Integer> testtokens = analyzer.uniqTokens(testing);
+//
+//		System.out.println("Training set unique tokens: " + traintokens.size());
+//		System.out.println("Testing set unique tokens: " + testtokens.size());
+//		traintokens.retainAll(testtokens);
+//		System.out.println("Tokens in common: " + traintokens.size());
+//
+//		Set<Integer> trainUsers = analyzer.uniqUsers(training);
+//		Set<Integer> testUsers = analyzer.uniqUsers(testing);
+//		System.out.println("Training set unique users: " + trainUsers.size());
+//		System.out.println("Testing set unique users: " + testUsers.size());
+//		trainUsers.retainAll(testUsers);
+//		System.out.println("Users in common: " + trainUsers.size());
 	}
 }
