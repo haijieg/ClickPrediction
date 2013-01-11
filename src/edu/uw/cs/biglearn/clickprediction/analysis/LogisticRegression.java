@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class LogisticRegression {
 	/**
@@ -32,6 +33,13 @@ public class LogisticRegression {
 		double wDepth;
 		double wAge;
 		double wGender;
+		
+		Map<Integer, Integer> accessTime_query; // keep track of the access timestamp of feature weights.
+																		 // Using this to do delayed regularization.
+		Map<Integer, Integer> accessTime_title; 	
+		Map<Integer, Integer> accessTime_description;
+		Map<Integer, Integer> accessTime_keyword;	
+
 
 		public Weights() {
 			w0 = wAge = wGender = wDepth = wPosition = 0.0;
@@ -39,6 +47,10 @@ public class LogisticRegression {
 			title = new HashMap<Integer, Double>();
 			keyword = new HashMap<Integer, Double>();
 			description = new HashMap<Integer, Double>();
+			accessTime_query = new HashMap<Integer, Integer>();
+			accessTime_keyword = new HashMap<Integer, Integer>();
+			accessTime_title = new HashMap<Integer, Integer>();
+			accessTime_description = new HashMap<Integer, Integer>();
 		}
 
 		@Override
@@ -81,6 +93,8 @@ public class LogisticRegression {
 					+ description.size();
 		}
 	}
+	
+
 
 	/**
 	 * Compute w^Tx.
@@ -127,7 +141,21 @@ public class LogisticRegression {
 	 *            the Regularization parameter
 	 */
 	private void updateWeights(Weights weights, DataInstance instance,
-			double step, double lambda) {
+			double step, double lambda, int timestamp) {
+
+		// Perform delayed regularization
+		if (lambda > 1e-8) {
+  		performDelayedRegularization(instance.query, weights.query,
+  				weights.accessTime_query, timestamp, step, lambda);
+  		performDelayedRegularization(instance.title, weights.title,
+  				weights.accessTime_title, timestamp, step, lambda);
+  		performDelayedRegularization(instance.keyword, weights.keyword,
+  				weights.accessTime_keyword, timestamp, step, lambda);
+  		performDelayedRegularization(instance.description, weights.description,
+  				weights.accessTime_description, timestamp, step, lambda);
+		}
+
+		
 		// compute w0 + <w, x>
 		double wx = computeWeightFeatureProduct(weights, instance);
 		double exp = Math.exp(wx);
@@ -177,6 +205,29 @@ public class LogisticRegression {
 		}
 	}
 
+	
+	/**
+	 * Apply delayed regularization to the weights corresponding to the given tokens.
+	 * @param tokens
+	 * @param weights
+	 * @param accessTime	a lookup table for querying the last access timestamp of a given weight.
+	 * @param now 	the current timestamp.
+	 * @param step
+	 * @param lambda
+	 */
+	private void performDelayedRegularization(int[] tokens,
+			Map<Integer, Double> weights, Map<Integer, Integer> accessTime,
+			int now, double step, double lambda) {
+		for (int token : tokens) {
+			Integer t = accessTime.get(token);
+			if (t != null) {
+				double w = weights.get(token);
+				weights.put(token, w * Math.pow((1 - step * lambda), now-t-1));
+			}
+			accessTime.put(token, now);
+		}
+	}
+	
 	/**
 	 * Train the logistic regression model using the training data and the
 	 * hyperparameters.
@@ -190,24 +241,26 @@ public class LogisticRegression {
 		Weights weights = new Weights();
 		int count = 0;
 		System.err.println("Loading data from " + dataset.path + " ... ");
-		while (dataset.hasNext()) {
-			DataInstance instance = dataset.nextInstance();
-
-			updateWeights(weights, instance, step, lambda);
-			count++;
-			if (count % 100000 == 0) {
-				System.err.println("Processed " + count + " lines");
-				System.err.println("l2 norm of weights: " + weights.l2norm());
-				System.err.println("l0 norm of weights: " + weights.l0norm());
-			}
+		for (int i = 0; i < 1; i++) {
+  		while (dataset.hasNext()) {
+  			DataInstance instance = dataset.nextInstance();
+  
+  			updateWeights(weights, instance, step, lambda, count);
+  			count++;
+  			if (count % 100000 == 0) {
+  				System.err.println("Processed " + count + " lines");
+  				System.err.println("l2 norm of weights: " + weights.l2norm());
+  				System.err.println("l0 norm of weights: " + weights.l0norm());
+  			}
+  		}
+  		if (count < dataset.size) {
+  			System.err
+  					.println("Warning: the real size of the data is less than the input size: "
+  							+ dataset.size + "<" + count);
+  		}
+  		System.err.println("Done. Total processed instances: " + count);
+  		dataset.reset();
 		}
-		if (count < dataset.size) {
-			System.err
-					.println("Warning: the real size of the data is less than the input size: "
-							+ dataset.size + "<" + count);
-		}
-		System.err.println("Done. Total processed instances: " + count);
-		dataset.reset();
 		return weights;
 	}
 
@@ -276,10 +329,10 @@ public class LogisticRegression {
 
 	public static void main(String args[]) throws IOException {
 		int training_size = DataSet.TESTINGSIZE;
-		// int training_size = DataSet.TRAININGSIZE;
+		//int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
+				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
@@ -287,7 +340,7 @@ public class LogisticRegression {
 
 		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegression lr = new LogisticRegression();
-		double[] steps = { 0.001, 0.01, 0.1 };
+		double[] steps = {0.001, 0.01, 0.1};
 		double lambda = 0.01;
 		for (double step : steps) {
 			System.err.println("Running step = " + step);

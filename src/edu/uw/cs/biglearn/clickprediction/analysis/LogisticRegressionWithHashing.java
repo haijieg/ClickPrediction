@@ -9,17 +9,20 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class LogisticRegressionWithHashing {
 	public class Weights {
 		int w0;
 		double[] ws;
+		int[] accessTime;
 		int dim;
 
 		public Weights(int dim) {
 			w0 = 0;
 			this.dim = dim;
 			ws = new double[dim];
+			accessTime = new int[dim];
 		}
 
 		public double l2norm() {
@@ -38,12 +41,42 @@ public class LogisticRegressionWithHashing {
 		}
 		return prod;
 	}
+	
+	/**
+	 * Apply delayed regularization to the weights corresponding to the given tokens.
+	 * @param tokens
+	 * @param weights
+	 * @param accessTime	a lookup table for querying the last access timestamp of a given weight.
+	 * @param now 	the current timestamp.
+	 * @param step
+	 * @param lambda
+	 */
+	private void performDelayedRegularization(Set<Integer> hashedFeature,
+			Weights w, int now, double step, double lambda) {
+		for (int i : hashedFeature) {
+			int t = w.accessTime[i];
+			w.ws[i] *= Math.pow((1-step*lambda), now-t-1);
+			w.accessTime[i] = now;
+		}
+	}
 
-	private void updateWeights(Weights weights, Map<Integer, Integer> hashedfeature, double step,
-			double grad, double lambda) {
+	private void updateWeights(Weights weights, HashedDataInstance instance, double step,
+			double lambda, int timestamp) {
+		performDelayedRegularization(instance.hashedFeature.keySet(), weights, timestamp, step, lambda);
+		// compute w0 + <w, x>
+		double wx = computeWeightFeatureProduct(weights,
+				instance.hashedFeature);
+		double exp = Math.exp(wx);
+		exp = Double.isInfinite(exp) ? (Double.MAX_VALUE - 1) : exp;
+		int num_positive = instance.clicks;
+		int num_negative = instance.impressions - num_positive;
+		// compute the gradient
+		double grad = num_positive * (-1 / (1 + exp)) + (num_negative)
+				* (exp / (1 + exp));
+		
 		weights.w0 += -step * grad;
 		// update weights along the negative gradient
-		for (Map.Entry<Integer, Integer> entry: hashedfeature.entrySet()) {
+		for (Map.Entry<Integer, Integer> entry: instance.hashedFeature.entrySet()) {
 			int key = entry.getKey();
 			weights.ws[key] += -step * (grad * entry.getValue() + lambda * weights.ws[key]);
 		}
@@ -57,17 +90,8 @@ public class LogisticRegressionWithHashing {
 		while (dataset.hasNext()) {
 			HashedDataInstance instance = dataset.nextHashedInstance(dim,
 					personalized);
-			// compute w0 + <w, x>
-			double wx = computeWeightFeatureProduct(weights,
-					instance.hashedFeature);
-			double exp = Math.exp(wx);
-			exp = Double.isInfinite(exp) ? (Double.MAX_VALUE - 1) : exp;
-			int num_positive = instance.clicks;
-			int num_negative = instance.impressions - num_positive;
-			// compute the gradient
-			double grad = num_positive * (-1 / (1 + exp)) + (num_negative)
-					* (exp / (1 + exp));
-			updateWeights(weights, instance.hashedFeature, step, grad, lambda);
+		
+			updateWeights(weights, instance, step, lambda, count+1);
 			count++;
 			if (count % 100000 == 0) {
 				System.err.println("Processed " + count + " lines");
