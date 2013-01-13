@@ -328,8 +328,7 @@ public class LogisticRegression {
 	}
 
 	public static void main(String args[]) throws IOException {
-		int training_size = DataSet.TESTINGSIZE;
-		//int training_size = DataSet.TRAININGSIZE;
+		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
@@ -341,6 +340,7 @@ public class LogisticRegression {
 		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegression lr = new LogisticRegression();
 		double[] steps = {0.001, 0.01, 0.1};
+		// double lambda = 0;
 		double lambda = 0.01;
 		for (double step : steps) {
 			System.err.println("Running step = " + step);

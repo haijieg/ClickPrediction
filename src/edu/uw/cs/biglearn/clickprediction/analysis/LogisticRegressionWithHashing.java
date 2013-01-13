@@ -159,24 +159,63 @@ public class LogisticRegressionWithHashing {
 			return Double.MAX_VALUE;
 		}
 	}
+	
+	public double eval(String pathToSol, ArrayList<Double> ctr_prediction, ArrayList<Boolean> includingList) {
+		try {
+			Scanner sc = new Scanner(new BufferedReader(new FileReader(
+					pathToSol)));
+			int size = ctr_prediction.size();
+			double wmse = 0.0;
+			int total = 0;
+			for (int i = 0; i < size; i++) {
+				String[] fields = sc.nextLine().split(",");
+				
+				if (!includingList.get(i))
+					continue;
+				
+				int clicks = Integer.parseInt(fields[0]);
+				int impressions = Integer.parseInt(fields[1]);
+				total += impressions;
+				double ctr = (double) clicks / impressions;
+				wmse += Math.pow((ctr - ctr_prediction.get(i)), 2);
+			}
+			wmse /= total;
+			return Math.sqrt(wmse);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Double.MAX_VALUE;
+		}
+	}
 
 	public static void main(String args[]) throws IOException {
 		boolean personal = true;
-		int training_size = personal ? DataSet.TRAININGSIZE
-				: DataSet.TESTINGSIZE;
-		training_size = (int) (DataSet.TESTINGSIZE * 5);
+		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
+				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
 				false, testing_size);
+		
+
+		Set<Integer> userInTraining = (new BasicAnalysis()).uniqUsers(training);
+		ArrayList<Boolean> includeList = new ArrayList<Boolean>();
+		if (personal) {
+			while(testing.hasNext()) {
+				int userid = testing.nextInstance().userid;
+				if (userInTraining.contains(userid))
+					includeList.add(true);
+				else
+					includeList.add(false);
+			}
+			testing.reset();
+		}
 
 		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegressionWithHashing lr = new LogisticRegressionWithHashing();
 		double step = 0.01;
-		double lambda = 0;
+		double lambda = 0.001;
 		int[] dims = {1572869};
 		for (int dim : dims) {
 			System.err.println("Running dim = " + dim);
@@ -189,7 +228,8 @@ public class LogisticRegressionWithHashing {
 					personal);
 			BufferedWriter out = new BufferedWriter(new FileWriter(ofname));
 			String solpath = "/Users/haijieg/workspace/kdd2012/solution/sol.txt";
-			double wmse = lr.eval(solpath, ctr_prediction);
+			//double wmse = lr.eval(solpath, ctr_prediction);
+			double wmse = lr.eval(solpath, ctr_prediction, includeList);
 			out.write("step: " + step + "\n");
 			out.write("hash dim: " + dim + "\n");
 			out.write("wmse: " + +wmse + "\n");
