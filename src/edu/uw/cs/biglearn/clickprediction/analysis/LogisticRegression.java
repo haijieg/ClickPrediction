@@ -345,23 +345,10 @@ public class LogisticRegression {
 		for (double step : steps) {
 			System.err.println("Running step = " + step);
 			Weights weights = lr.train(training, lambda, step);
-			String ofname = "/Users/haijieg/workspace/kdd2012/experiments/lr/weights_"
-					+ step + ".txt";
-			BufferedWriter out = new BufferedWriter(new FileWriter(ofname));
-			out.write(weights.toString());
-			out.close();
-			ofname = "/Users/haijieg/workspace/kdd2012/experiments/lr/ctr_"
-					+ step + ".txt";
 			ArrayList<Double> ctr_prediction = lr.predict(weights, testing);
-			out = new BufferedWriter(new FileWriter(ofname));
 			String solpath = "/Users/haijieg/workspace/kdd2012/solution/sol.txt";
 			double wmse = lr.eval(solpath, ctr_prediction);
-			out.write("wmse: " + +wmse + "\n");
 			System.out.println("wmse: " + wmse + "\n");
-			for (double ctr : ctr_prediction) {
-				out.write(formatter.format(ctr) + "\n");
-			}
-			out.close();
 		}
 	}
 }

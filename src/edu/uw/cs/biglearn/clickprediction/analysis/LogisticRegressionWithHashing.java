@@ -188,56 +188,42 @@ public class LogisticRegressionWithHashing {
 	}
 
 	public static void main(String args[]) throws IOException {
-		boolean personal = true;
+		boolean personal = false;
 		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
+		double step = 0.01;
+		double lambda = 0.001;
+		int[] dims = {1572869};
+	
 		DataSet training = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
 				false, testing_size);
-		
-
-		Set<Integer> userInTraining = (new BasicAnalysis()).uniqUsers(training);
-		ArrayList<Boolean> includeList = new ArrayList<Boolean>();
-		if (personal) {
-			while(testing.hasNext()) {
-				int userid = testing.nextInstance().userid;
-				if (userInTraining.contains(userid))
-					includeList.add(true);
-				else
-					includeList.add(false);
-			}
-			testing.reset();
-		}
-
-		DecimalFormat formatter = new DecimalFormat("###.##");
 		LogisticRegressionWithHashing lr = new LogisticRegressionWithHashing();
-		double step = 0.01;
-		double lambda = 0.001;
-		int[] dims = {1572869};
-		for (int dim : dims) {
-			System.err.println("Running dim = " + dim);
-			String ofname = "/Users/haijieg/workspace/kdd2012/experiments/hashing";
-			if (personal)
-				ofname += "_personal";
-			ofname += "/ctr_" + dim + ".txt";
-			Weights weights = lr.train(training, dim, lambda, step, personal);
-			ArrayList<Double> ctr_prediction = lr.predict(weights, testing,
-					personal);
-			BufferedWriter out = new BufferedWriter(new FileWriter(ofname));
-			String solpath = "/Users/haijieg/workspace/kdd2012/solution/sol.txt";
-			//double wmse = lr.eval(solpath, ctr_prediction);
-			double wmse = lr.eval(solpath, ctr_prediction, includeList);
-			out.write("step: " + step + "\n");
-			out.write("hash dim: " + dim + "\n");
-			out.write("wmse: " + +wmse + "\n");
-			System.out.println("wmse: " + wmse + "\n");
-			for (double ctr : ctr_prediction) {
-				out.write(formatter.format(ctr) + "\n");
-			}
-			out.close();
-		}
+	
+  			Set<Integer> userInTraining = (new BasicAnalysis()).uniqUsers(training);
+  			ArrayList<Boolean> includeList = new ArrayList<Boolean>();			
+  			while(testing.hasNext()) {
+  				int userid = testing.nextInstance().userid;
+  				if (userInTraining.contains(userid))
+  					includeList.add(true);
+  				else
+  					includeList.add(false);
+  			}
+  			testing.reset();
+  			
+  			for (int dim : dims) {
+  				System.err.println("Running dim = " + dim);
+  				Weights weights = lr.train(training, dim, lambda, step, personal);
+  				ArrayList<Double> ctr_prediction = lr.predict(weights, testing,
+  						personal);
+  				String solpath = "/Users/haijieg/workspace/kdd2012/solution/sol.txt";
+  				double wmse = lr.eval(solpath, ctr_prediction);
+  				double wmseKnownUser = lr.eval(solpath, ctr_prediction, includeList);
+  				System.out.println("wmse: " + wmse + "\n");
+  				System.out.println("wmse on known user: " + wmseKnownUser + "\n");
+  			}
 	}
 }

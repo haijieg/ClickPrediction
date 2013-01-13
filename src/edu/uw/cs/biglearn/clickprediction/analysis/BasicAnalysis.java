@@ -118,7 +118,7 @@ public class BasicAnalysis {
 	public static void main(String args[]) throws Exception {
 		int size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
+				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
 				true, DataSet.TESTINGSIZE);
 		DataSet testing = new DataSet(
 				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
