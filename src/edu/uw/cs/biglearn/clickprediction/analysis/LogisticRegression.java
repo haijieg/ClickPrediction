@@ -1,16 +1,14 @@
 package edu.uw.cs.biglearn.clickprediction.analysis;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
+
+import edu.uw.cs.biglearn.clickprediction.util.EvalUtil;
 
 public class LogisticRegression {
 	/**
@@ -25,32 +23,19 @@ public class LogisticRegression {
 		 * query.get("123") will return the weight for the feature:
 		 * "token 123 in the query field".
 		 */
-		Map<Integer, Double> query;
-		Map<Integer, Double> title;
-		Map<Integer, Double> keyword;
-		Map<Integer, Double> description;
+		Map<Integer, Double> wTokens;
 		double wPosition;
 		double wDepth;
 		double wAge;
 		double wGender;
 		
-		Map<Integer, Integer> accessTime_query; // keep track of the access timestamp of feature weights.
-																		 // Using this to do delayed regularization.
-		Map<Integer, Integer> accessTime_title; 	
-		Map<Integer, Integer> accessTime_description;
-		Map<Integer, Integer> accessTime_keyword;	
-
-
+		Map<Integer, Integer> accessTime; // keep track of the access timestamp of feature weights.
+																			// Using this to do delayed regularization.
+		
 		public Weights() {
 			w0 = wAge = wGender = wDepth = wPosition = 0.0;
-			query = new HashMap<Integer, Double>();
-			title = new HashMap<Integer, Double>();
-			keyword = new HashMap<Integer, Double>();
-			description = new HashMap<Integer, Double>();
-			accessTime_query = new HashMap<Integer, Integer>();
-			accessTime_keyword = new HashMap<Integer, Integer>();
-			accessTime_title = new HashMap<Integer, Integer>();
-			accessTime_description = new HashMap<Integer, Integer>();
+			wTokens = new HashMap<Integer, Double>();
+			accessTime = new HashMap<Integer, Integer>();
 		}
 
 		@Override
@@ -62,10 +47,7 @@ public class LogisticRegression {
 			builder.append("Position: " + myFormatter.format(wPosition) + "\n");
 			builder.append("Gender: " + myFormatter.format(wGender) + "\n");
 			builder.append("Age: " + myFormatter.format(wAge) + "\n");
-			builder.append("query: " + query.toString() + "\n");
-			builder.append("title: " + title.toString() + "\n");
-			builder.append("keyword: " + keyword.toString() + "\n");
-			builder.append("description: " + description.toString() + "\n");
+			builder.append("Tokens: " + wTokens.toString() + "\n");
 			return builder.toString();
 		}
 
@@ -73,14 +55,9 @@ public class LogisticRegression {
 		 * @return the l2 norm of this weight vector.
 		 */
 		public double l2norm() {
-			double l2 = w0 * w0;
-			for (double w : query.values())
-				l2 += w * w;
-			for (double w : title.values())
-				l2 += w * w;
-			for (double w : description.values())
-				l2 += w * w;
-			for (double w : keyword.values())
+			double l2 = w0 * w0 + wAge * wAge + wGender * wGender
+					 				+ wDepth*wDepth + wPosition*wPosition;
+			for (double w : wTokens.values())
 				l2 += w * w;
 			return Math.sqrt(l2);
 		}
@@ -89,15 +66,14 @@ public class LogisticRegression {
 		 * @return the l0 norm of this weight vector.
 		 */
 		public int l0norm() {
-			return 3 + query.size() + title.size() + keyword.size()
-					+ description.size();
+			return 4 + wTokens.size();
 		}
 	}
 	
 
 
 	/**
-	 * Compute w^Tx.
+	 * Helper function to compute inner product w^Tx.
 	 * 
 	 * @param weights
 	 * @param instance
@@ -108,23 +84,8 @@ public class LogisticRegression {
 		double wx = weights.w0 + weights.wAge * instance.age + weights.wGender
 				* instance.gender + weights.wDepth * instance.depth
 				+ weights.wPosition * instance.position;
-		for (int token : instance.query) {
-			Double w_token = weights.query.get(token);
-			if (w_token != null)
-				wx += w_token;
-		}
-		for (int token : instance.title) {
-			Double w_token = weights.title.get(token);
-			if (w_token != null)
-				wx += w_token;
-		}
-		for (int token : instance.keyword) {
-			Double w_token = weights.keyword.get(token);
-			if (w_token != null)
-				wx += w_token;
-		}
-		for (int token : instance.description) {
-			Double w_token = weights.description.get(token);
+		for (int token : instance.tokens) {
+			Double w_token = weights.wTokens.get(token);
 			if (w_token != null)
 				wx += w_token;
 		}
@@ -132,39 +93,24 @@ public class LogisticRegression {
 	}
 
 	/**
-	 * Update the weights based on the current instance.
-	 * 
+	 * Helper function: update the weights based on the current instance.
 	 * @param weights
 	 * @param instance
 	 * @param step
 	 * @param lambda
-	 *            the Regularization parameter
+	 * @param timestamp
 	 */
 	private void updateWeights(Weights weights, DataInstance instance,
 			double step, double lambda, int timestamp) {
 
-		// Perform delayed regularization
-		if (lambda > 1e-8) {
-  		performDelayedRegularization(instance.query, weights.query,
-  				weights.accessTime_query, timestamp, step, lambda);
-  		performDelayedRegularization(instance.title, weights.title,
-  				weights.accessTime_title, timestamp, step, lambda);
-  		performDelayedRegularization(instance.keyword, weights.keyword,
-  				weights.accessTime_keyword, timestamp, step, lambda);
-  		performDelayedRegularization(instance.description, weights.description,
-  				weights.accessTime_description, timestamp, step, lambda);
-		}
-
+		
 		
 		// compute w0 + <w, x>
 		double wx = computeWeightFeatureProduct(weights, instance);
 		double exp = Math.exp(wx);
 		exp = Double.isInfinite(exp) ? (Double.MAX_VALUE - 1) : exp;
-		int num_positive = instance.clicks;
-		int num_negative = instance.impressions - num_positive;
 		// compute the gradient
-		double grad = num_positive * (-1 / (1 + exp)) + (num_negative)
-				* (exp / (1 + exp));
+		double grad = (instance.clicked == 1) ? (-1 / (1 + exp)) : (exp / (1 + exp));
 
 		// update weights along the negative gradient
 		weights.w0 += -step * grad;
@@ -175,33 +121,13 @@ public class LogisticRegression {
 				* (grad * instance.depth + lambda * weights.wDepth);
 		weights.wPosition += -step
 				* (grad * instance.position + lambda * weights.wPosition);
-		for (int token : instance.query) {
-			Double w = weights.query.get(token);
+		
+		for (int token : instance.tokens) {
+			Double w = weights.wTokens.get(token);
 			if (w == null)
 				w = 0.0;
 			w += -step * (grad + lambda * w);
-			weights.query.put(token, w);
-		}
-		for (int token : instance.title) {
-			Double w = weights.title.get(token);
-			if (w == null)
-				w = 0.0;
-			w += -step * (grad + lambda * w);
-			weights.title.put(token, w);
-		}
-		for (int token : instance.keyword) {
-			Double w = weights.keyword.get(token);
-			if (w == null)
-				w = 0.0;
-			w += -step * (grad + lambda * w);
-			weights.keyword.put(token, w);
-		}
-		for (int token : instance.description) {
-			Double w = weights.description.get(token);
-			if (w == null)
-				w = 0.0;
-			w += -step * (grad + lambda * w);
-			weights.description.put(token, w);
+			weights.wTokens.put(token, w);
 		}
 	}
 
@@ -216,42 +142,85 @@ public class LogisticRegression {
 	 * @param lambda
 	 */
 	private void performDelayedRegularization(int[] tokens,
-			Map<Integer, Double> weights, Map<Integer, Integer> accessTime,
+			Weights weights,
 			int now, double step, double lambda) {
 		for (int token : tokens) {
-			Integer t = accessTime.get(token);
+			Integer t = weights.accessTime.get(token);
 			if (t != null) {
-				double w = weights.get(token);
-				weights.put(token, w * Math.pow((1 - step * lambda), now-t-1));
+				double w = weights.wTokens.get(token);
+				weights.wTokens.put(token, w * Math.pow((1 - step * lambda), now-t-1));
 			}
-			accessTime.put(token, now);
+			weights.accessTime.put(token, now);
 		}
 	}
 	
+	
 	/**
 	 * Train the logistic regression model using the training data and the
-	 * hyperparameters.
+	 * hyperparameters. Return the weights, and record the cumulative loss.
 	 * 
 	 * @param dataset
 	 * @param lambda
 	 * @param step
 	 * @return the weights for the model.
 	 */
-	public Weights train(DataSet dataset, double lambda, double step) {
+	public Weights train(DataSet dataset, double lambda, double step, ArrayList<Double> AvgLoss) {
 		Weights weights = new Weights();
 		int count = 0;
+		int loss = 0;
 		System.err.println("Loading data from " + dataset.path + " ... ");
 		for (int i = 0; i < 1; i++) {
   		while (dataset.hasNext()) {
   			DataInstance instance = dataset.nextInstance();
-  
-  			updateWeights(weights, instance, step, lambda, count);
+  			
+    		// Perform delayed regularization
+  			if (lambda > 1e-8) {
+  	  		performDelayedRegularization(instance.tokens, weights,
+  	  				count, step, lambda);
+  			}
+  			
+  			// compute w0 + <w, x>
+  			double wx = computeWeightFeatureProduct(weights, instance);
+  			double exp = Math.exp(wx);
+  			exp = Double.isInfinite(exp) ? (Double.MAX_VALUE - 1) : exp;
+  			
+  		
+  			// compute the gradient
+  			double grad = (instance.clicked == 1) ? (-1 / (1 + exp)) : (exp / (1 + exp));
+  			
+  			// update weights along the negative gradient
+  			weights.w0 += -step * grad;
+  			weights.wAge += -step * (grad * instance.age + lambda * weights.wAge);
+  			weights.wGender += -step
+  					* (grad * instance.gender + lambda * weights.wGender);
+  			weights.wDepth += -step
+  					* (grad * instance.depth + lambda * weights.wDepth);
+  			weights.wPosition += -step
+  					* (grad * instance.position + lambda * weights.wPosition);  			
+  			for (int token : instance.tokens) {
+  				Double w = weights.wTokens.get(token);
+  				if (w == null)
+  					w = 0.0;
+  				w += -step * (grad + lambda * w);
+  				weights.wTokens.put(token, w);
+  			}
+
   			count++;
+  		
   			if (count % 100000 == 0) {
   				System.err.println("Processed " + count + " lines");
+  				System.err.println("Average loss: " + (double)loss / count);
   				System.err.println("l2 norm of weights: " + weights.l2norm());
-  				System.err.println("l0 norm of weights: " + weights.l0norm());
+  				// System.err.println("l0 norm of weights: " + weights.l0norm());
   			}
+  			
+  			// predict the label, record the loss
+  		  int click_hat = (exp / (1+exp)) > 0.5 ? 1 : 0;
+  		  if (click_hat != instance.clicked)
+  		  	loss += 1;
+  		  if (count % 100 == 0) {
+  		  	AvgLoss.add((double)loss/count);
+  		  }
   		}
   		if (count < dataset.size) {
   			System.err
@@ -295,60 +264,55 @@ public class LogisticRegression {
 		return ctr;
 	}
 
-	/**
-	 * Evaluates the model by computing the weighted rooted mean square error of
-	 * between the prediction and the true labels.
-	 * 
-	 * @param pathToSol
-	 * @param ctr_prediction
-	 * @return the weighted rooted mean square error of between the prediction
-	 *         and the true labels.
-	 */
-	public double eval(String pathToSol, ArrayList<Double> ctr_prediction) {
-		try {
-			Scanner sc = new Scanner(new BufferedReader(new FileReader(
-					pathToSol)));
-			int size = ctr_prediction.size();
-			double wmse = 0.0;
-			int total = 0;
-			for (int i = 0; i < size; i++) {
-				String[] fields = sc.nextLine().split(",");
-				int clicks = Integer.parseInt(fields[0]);
-				int impressions = Integer.parseInt(fields[1]);
-				total += impressions;
-				double ctr = (double) clicks / impressions;
-				wmse += Math.pow((ctr - ctr_prediction.get(i)), 2);
-			}
-			wmse /= total;
-			return Math.sqrt(wmse);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return Double.MAX_VALUE;
-		}
-	}
-
 	public static void main(String args[]) throws IOException {
 		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train3.txt",
+				"/Users/haijieg/workspace/kdd2012/simpledata/train.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
+				"/Users/haijieg/workspace/kdd2012/simpledata/test.txt",
 				false, testing_size);
-
-		DecimalFormat formatter = new DecimalFormat("###.##");
+		String solpath = "/Users/haijieg/workspace/kdd2012/simpledata/test_label.txt";
 		LogisticRegression lr = new LogisticRegression();
-		double[] steps = {0.001, 0.01, 0.1};
-		// double lambda = 0;
-		double lambda = 0.01;
-		for (double step : steps) {
-			System.err.println("Running step = " + step);
-			Weights weights = lr.train(training, lambda, step);
-			ArrayList<Double> ctr_prediction = lr.predict(weights, testing);
-			String solpath = "/Users/haijieg/workspace/kdd2012/solution/sol.txt";
-			double wmse = lr.eval(solpath, ctr_prediction);
-			System.out.println("wmse: " + wmse + "\n");
+		
+		double baseline_rmse = EvalUtil.evalBaseLine(solpath, 0.03365528484381977);
+		System.out.println("Baseline rmse: " + baseline_rmse);
+
+		DecimalFormat formatter = new DecimalFormat("###.####");
+			//double [] steps = {0.001, 0.01, 0.1};
+		  //double [] lambdas = {0, 0.01, 0.1};
+			double [] steps = {0.05};
+			double [] lambdas = {0, 0.0005, 0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035, 0.004, 0.0045, 0.005};
+		  for (double lambda: lambdas) {
+		  	for (double step : steps) {
+  			System.err.println("Running step = " + step +", lambda = " + lambda);
+  			ArrayList<Double> AvgLoss = new ArrayList<Double>();
+  			Weights weights = lr.train(training, lambda, step, AvgLoss);
+  			ArrayList<Double> ctr_prediction = lr.predict(weights, testing);
+  			double rmse = EvalUtil.eval(solpath, ctr_prediction);
+  			System.out.println("rmse: " + rmse + "\n");
+  
+  			// save the weights and the prediction
+  			String outpathbase = "/Users/haijieg/workspace/kdd2012/experiments2/lrreg/";
+  			String suffix = "_"+formatter.format(step) + "_"+formatter.format(lambda);
+  			BufferedWriter writer = new BufferedWriter(new FileWriter(outpathbase + "weights" + suffix));
+  			writer.write("l2 norm: " + weights.l2norm() + "\n");
+  			writer.write("l0 norm: " + weights.l0norm() + "\n");  			
+  			writer.write(weights.toString());
+  			writer.close();
+  			
+  			writer = new BufferedWriter(new FileWriter(outpathbase + "ctr" + suffix));
+  			writer.write("rmse: " + rmse + "\n");
+  			for (double ctr : ctr_prediction)
+  				writer.write(ctr + "\n");
+  			writer.close();
+  			
+  			writer = new BufferedWriter(new FileWriter(outpathbase + "loss" + suffix));
+  			for (double loss : AvgLoss)
+  				writer.write(loss + "\n");
+  			writer.close();
+		  	}
 		}
 	}
 }

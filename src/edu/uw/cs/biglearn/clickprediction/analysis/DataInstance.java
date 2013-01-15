@@ -10,26 +10,20 @@ import edu.uw.cs.biglearn.clickprediction.util.StringUtil;
  */
 public class DataInstance {
 	// Label
-	int clicks; // number of clicks, -1 if it is testing data.
-	int impressions; // number of impressions, -1 if it is testing data.
+	int clicked; // 0 or 1
 
-	// Feature of the session
+	// Feature of the page and ad
 	int depth; // depth of the session.
-	int[] query; // List of token ids in the query field
-
-	// Feature of the ad
 	int position; // position of the ad.
-	int[] keyword; // List of token ids in the keyword field
-	int[] title; // List of token ids in the title field
-	int[] description; // List of token in the description field
+	int[] tokens; // list of token ids.
+	
 
 	// Feature of the user
 	int userid;
 	int gender; // user gender indicator -1 for male, 1 for female
-	int age;// user age indicator '1' for (0, 12], '2' for (12, 18], '3' for
-			// (18, 24], '4' for (24, 30],
-
-	// '5' for (30, 40], and '6' for greater than 40.
+	int age;		// user age indicator '1' for (0, 12], '2' for (12, 18], '3' for
+							// (18, 24], '4' for (24, 30],
+							// 	'5' for (30, 40], and '6' for greater than 40.
 
 	/**
 	 * Create a DataInstance from input string.
@@ -43,42 +37,29 @@ public class DataInstance {
 		String[] fields = line.split("\\|");
 		int offset = 0;
 		if (hasLabel) {
-			clicks = Integer.valueOf(fields[0]);
-			impressions = Integer.valueOf(fields[1]);
-			offset = 2;
+			clicked = Integer.valueOf(fields[0]);
+			offset = 1;
 		} else {
-			clicks = -1;
-			impressions = -1;
+			clicked = -1;
 		}
 		depth = Integer.valueOf(fields[offset + 0]);
 		position = Integer.valueOf(fields[offset + 1]);
-		String[] querytokens = fields[offset + 2].split(",");
-		query = StringUtil.mapArrayStrToInt(querytokens);
-		String[] keywordtokens = fields[offset + 3].split(",");
-		keyword = StringUtil.mapArrayStrToInt(keywordtokens);
-		String[] titletokens = fields[offset + 4].split(",");
-		title = StringUtil.mapArrayStrToInt(titletokens);
-		String[] descriptiontokens = fields[offset + 5].split(",");
-		description = StringUtil.mapArrayStrToInt(descriptiontokens);
-		String[] usertokens = fields[offset + 6].split(",");
-		userid = Integer.parseInt(usertokens[0]);
-		gender = Integer.parseInt(usertokens[1]);
-		gender = (int) ((1 - 1.5) * 2.0); // map gender from {1,2} to {-1, 1}
-		age = Integer.parseInt(usertokens[2]);
+		userid = Integer.valueOf(fields[offset + 2]);
+		gender = Integer.valueOf(fields[offset + 3]);
+		gender = (int)((gender - 1.5) * 2.0); // map gender from {1,2} to {-1, 1}
+		age = Integer.valueOf(fields[offset + 4]);
+		tokens = StringUtil.mapArrayStrToInt(fields[offset+5].split(","));
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		if (clicks >= 0) {
-			builder.append(clicks + "|" + impressions + "|");
+		if (clicked >= 0) {
+			builder.append(clicked + "|");
 		}
 		builder.append(depth + "|" + position + "|");
-		builder.append(StringUtil.implode(query, ",") + "|");
-		builder.append(StringUtil.implode(keyword, ",") + "|");
-		builder.append(StringUtil.implode(title, ",") + "|");
-		builder.append(StringUtil.implode(description, ",") + "|");
-		builder.append(userid + "," + gender + "," + age);
+		builder.append(userid + "|" + gender + "|" + age + "|");
+		builder.append(StringUtil.implode(tokens, ","));
 		return builder.toString();
 	}
 }

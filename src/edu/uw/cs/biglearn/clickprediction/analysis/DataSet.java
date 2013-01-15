@@ -12,7 +12,7 @@ import java.util.Scanner;
  * 
  */
 public class DataSet {
-	public static final int TRAININGSIZE = 1016552;
+	public static final int TRAININGSIZE = 2335859;
 	public static final int TESTINGSIZE = 1016552;
 	public String path;
 	public boolean hasLabel;

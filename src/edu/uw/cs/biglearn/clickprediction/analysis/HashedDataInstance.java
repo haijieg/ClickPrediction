@@ -4,58 +4,52 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.uw.cs.biglearn.clickprediction.util.HashUtil;
+import edu.uw.cs.biglearn.clickprediction.util.StringUtil;
 
 public class HashedDataInstance {
 	// Label
-	int clicks;
-	int impressions;
+	int clicked; // 0 or 1
 
-	int featuredim; // the size of the hashed feature space.
-	Map<Integer, Integer> hashedFeature; // map hashed feature key to its value;
+	// Feature of the page and ad
+	int depth; // depth of the session.
+	int position; // position of the ad.
+
+	// Feature of the user
+	int userid;
+	int gender; // user gender indicator -1 for male, 1 for female
+	int age;		// user age indicator '1' for (0, 12], '2' for (12, 18], '3' for
+							// (18, 24], '4' for (24, 30],
+							// 	'5' for (30, 40], and '6' for greater than 40.
+	
+	int featuredim;
+	Map<Integer, Integer> hashedTextFeature; // map hashed feature key to its value;
 
 	public HashedDataInstance(String line, boolean hasLabel, int dim,
 			boolean personal) {
 		String[] fields = line.split("\\|");
 		int offset = 0;
 		if (hasLabel) {
-			clicks = Integer.valueOf(fields[0]);
-			impressions = Integer.valueOf(fields[1]);
-			offset = 2;
+			clicked = Integer.valueOf(fields[0]);
+			offset = 1;
 		} else {
-			clicks = -1;
-			impressions = -1;
+			clicked = -1;
 		}
-		int depth = Integer.parseInt((fields[offset + 0])); // depth;
-		int position = Integer.parseInt((fields[offset + 1])); // position
-		String[] querytokens = fields[offset + 2].split(","); // query
-		String[] keywordtokens = fields[offset + 3].split(","); // keyword
-		String[] titletokens = fields[offset + 4].split(","); // title
-		String[] descriptiontokens = fields[offset + 5].split(","); // description
-
-		String[] usertokens = fields[offset + 6].split(",");
-		int userid = Integer.parseInt(usertokens[0]); // userid
-		int gender = Integer.parseInt(usertokens[1]); // gender
-		gender = (int) ((float) gender - 1.5) * 2; // map gender from {1,2} to
-													// {-1, 1}
-		int age = Integer.parseInt(usertokens[2]); // age
+		depth = Integer.valueOf(fields[offset + 0]);
+		position = Integer.valueOf(fields[offset + 1]);
+		userid = Integer.valueOf(fields[offset + 2]);
+		gender = Integer.valueOf(fields[offset + 3]);
+		gender = (int)((gender - 1.5) * 2.0); // map gender from {1,2} to {-1, 1}
+		age = Integer.valueOf(fields[offset + 4]);
+		
+		String[] tokens = fields[offset+5].split(",");
 
 		/**
 		 * Fill in your code here to create a hashedFeature.
 		 */
 		this.featuredim = dim;
-		hashedFeature = new HashMap<Integer, Integer>();
-		updateFeature("age", age);
-		updateFeature("gender", gender);
-		updateFeature("depth", depth);
-		updateFeature("position", position);
-		for (String token : querytokens)
-			updateFeature("query" + token, 1);
-		for (String token : keywordtokens)
-			updateFeature("keyword" + token, 1);
-		for (String token : titletokens)
-			updateFeature("title" + token, 1);
-		for (String token : descriptiontokens)
-			updateFeature("description" + token, 1);
+		hashedTextFeature = new HashMap<Integer, Integer>();
+		for (String token : tokens)
+			updateFeature(token, 1);
 
 		if (personal) {
 			/**
@@ -63,18 +57,8 @@ public class HashedDataInstance {
 			 * with personalization.
 			 */
 			updateFeature(userid + "intercept", 1);
-			updateFeature(userid + "age", age);
-			updateFeature(userid + "gender", gender);
-			updateFeature(userid + "depth", depth);
-			updateFeature(userid + "position", position);
-			for (String token : querytokens)
-				updateFeature(userid + "query" + token, 1);
-			for (String token : keywordtokens)
-				updateFeature(userid + "keyword" + token, 1);
-			for (String token : titletokens)
-				updateFeature(userid + "title" + token, 1);
-			for (String token : descriptiontokens)
-				updateFeature(userid + "description" + token, 1);
+			for (String token : tokens)
+				updateFeature(userid + token, 1);
 		}
 	}
 
@@ -86,9 +70,9 @@ public class HashedDataInstance {
 	private void updateFeature(String key, int val) {
 		int hashedkey = HashUtil.hashToRange(key, featuredim);
 		int hashedval = HashUtil.hashToSign(key) * val;
-		Integer oldvalue = hashedFeature.get(hashedkey);
+		Integer oldvalue = hashedTextFeature.get(hashedkey);
 		if (oldvalue == null)
 			oldvalue = 0;
-		hashedFeature.put(hashedkey, oldvalue + hashedval);		
+		hashedTextFeature.put(hashedkey, oldvalue + hashedval);		
 	}
 }

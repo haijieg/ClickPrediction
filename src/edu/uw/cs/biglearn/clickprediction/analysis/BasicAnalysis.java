@@ -5,42 +5,6 @@ import java.util.Set;
 
 public class BasicAnalysis {
 	/**
-	 * Make sure the path is for training data. Otherwise, exception will be
-	 * thrown.
-	 * 
-	 * @param path
-	 * @throws Exception
-	 */
-	public void findPopularInstance(DataSet dataset) {
-		int count = 0;
-		System.err.println("Loading data from " + dataset.path + " ... ");
-
-		DataInstance maxImpressions = null;
-		DataInstance maxClicks = null;
-
-		while (dataset.hasNext()) {
-			DataInstance instance = dataset.nextInstance();
-			count++;
-
-			if (maxImpressions == null
-					|| instance.impressions > maxImpressions.impressions)
-				maxImpressions = instance;
-
-			if (maxClicks == null || instance.clicks > maxImpressions.clicks)
-				maxClicks = instance;
-
-			if (count % 100000 == 0) {
-				System.err.println("Processed " + count + " lines");
-			}
-		}
-		dataset.reset();
-		System.out.println("Instance with maximum impressions: "
-				+ maxImpressions.toString());
-		System.out.println("Instance with maximum clicks: "
-				+ maxClicks.toString());
-	}
-
-	/**
 	 * Return the uniqe tokens in the dataset.
 	 * 
 	 * @param dataset
@@ -52,15 +16,8 @@ public class BasicAnalysis {
 		int count = 0;
 		while (dataset.hasNext()) {
 			DataInstance instance = dataset.nextInstance();
-			for (int token : instance.query)
+			for (int token : instance.tokens)
 				tokens.add(token);
-			for (int token : instance.title)
-				tokens.add(token);
-			for (int token : instance.keyword)
-				tokens.add(token);
-			for (int token : instance.description)
-				tokens.add(token);
-
 			count++;
 			if (count % 100000 == 0) {
 				System.err.println("Processed " + count + " lines");
@@ -100,34 +57,30 @@ public class BasicAnalysis {
 	public double averageCtr(DataSet dataset) {
 		System.err.println("Compute average ctr");
 		int count = 0;
-		int total_click = 0;
-		int total_impressions = 0;
+		int clicks = 0;
 		while (dataset.hasNext()) {
 			DataInstance instance = dataset.nextInstance();
-			total_click += instance.clicks;
-			total_impressions += instance.impressions;
+			clicks += instance.clicked;
 			count++;
 			if (count % 100000 == 0) {
 				System.err.println("Processed " + count + " lines");
 			}
 		}
 		dataset.reset();
-		return (double) total_click / total_impressions;
+		return (double) clicks / count;
 	}
 
 	public static void main(String args[]) throws Exception {
-		int size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
-				true, DataSet.TESTINGSIZE);
+				"/Users/haijieg/workspace/kdd2012/simpledata/train.txt",
+				true, DataSet.TRAININGSIZE);
 		DataSet testing = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
-				false, size);
+				"/Users/haijieg/workspace/kdd2012/simpledata/test.txt",
+				false, DataSet.TESTINGSIZE);
 		BasicAnalysis analyzer = new BasicAnalysis();
 
 		System.out.println("Average CTR: " + analyzer.averageCtr(training));
 
-		analyzer.findPopularInstance(training);
 		Set<Integer> traintokens = analyzer.uniqTokens(training);
 		Set<Integer> testtokens = analyzer.uniqTokens(testing);
 

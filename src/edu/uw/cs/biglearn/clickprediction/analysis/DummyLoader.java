@@ -45,13 +45,13 @@ public class DummyLoader {
 
 		// Creates a dataset from the trainingdata with size = 10;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/train.txt",
+				"/Users/haijieg/workspace/kdd2012/simpledata/train.txt",
 				true, size);
 		loader.scanAndPrint(training);
 
 		// Creates a dataset from the testdata with size = 10;
 		DataSet testing = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/datawithfeature/test.txt",
+				"/Users/haijieg/workspace/kdd2012/simpledata/test.txt",
 				false, size);
 		loader.scanAndPrint(testing);
 	}
