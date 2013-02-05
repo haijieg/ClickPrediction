@@ -1,3 +1,4 @@
+setwd("../experiments");
 l1 = read.table("lr/loss_0.001_0");
 l2 = read.table("lr/loss_0.01_0");
 l3 = read.table("lr/loss_0.05_0");

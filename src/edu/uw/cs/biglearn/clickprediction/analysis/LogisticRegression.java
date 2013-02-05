@@ -230,6 +230,17 @@ public class LogisticRegression {
   		System.err.println("Done. Total processed instances: " + count);
   		dataset.reset();
 		}
+		
+		// Final sweep for delayed regularization
+		int[] alltokens = new int[weights.wTokens.size()];
+		int i = 0;
+		for (Integer token : weights.wTokens.keySet()) {
+			alltokens[i] = token;
+			++i;
+		}
+		performDelayedRegularization(alltokens,
+				weights,
+				count-1, step, lambda);
 		return weights;
 	}
 
@@ -268,22 +279,22 @@ public class LogisticRegression {
 		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/simpledata/train.txt",
+				"data/train.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/simpledata/test.txt",
+				"data/test.txt",
 				false, testing_size);
-		String solpath = "/Users/haijieg/workspace/kdd2012/simpledata/test_label.txt";
+		String solpath = "data/test_label.txt";
 		LogisticRegression lr = new LogisticRegression();
 		
 		double baseline_rmse = EvalUtil.evalBaseLine(solpath, 0.03365528484381977);
 		System.out.println("Baseline rmse: " + baseline_rmse);
 
 		DecimalFormat formatter = new DecimalFormat("###.####");
-			//double [] steps = {0.001, 0.01, 0.1};
-		  //double [] lambdas = {0, 0.01, 0.1};
-			double [] steps = {0.05};
-			double [] lambdas = {0, 0.0005, 0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035, 0.004, 0.0045, 0.005};
+			double [] steps = {0.001, 0.01, 0.05};
+			double [] lambdas = {0};
+			//double [] steps = {0.05};
+			//double [] lambdas = {0, 0.002, 0.004,  0.006, 0.008, 0.01, 0.012, 0.014};
 		  for (double lambda: lambdas) {
 		  	for (double step : steps) {
   			System.err.println("Running step = " + step +", lambda = " + lambda);
@@ -294,7 +305,7 @@ public class LogisticRegression {
   			System.out.println("rmse: " + rmse + "\n");
   
   			// save the weights and the prediction
-  			String outpathbase = "/Users/haijieg/workspace/kdd2012/experiments2/lrreg/";
+  			String outpathbase = "experiments/lrreg/";
   			String suffix = "_"+formatter.format(step) + "_"+formatter.format(lambda);
   			BufferedWriter writer = new BufferedWriter(new FileWriter(outpathbase + "weights" + suffix));
   			writer.write("l2 norm: " + weights.l2norm() + "\n");

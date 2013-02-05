@@ -1,5 +1,6 @@
 eta = 0.05
-lambdas = seq(0, 0.005, by=0.0005)
+lambdas = seq(0, 0.014, by=0.002)
+setwd("~/workspace/ClickPrediction/experiments/")
 rmse = read.table("lrreg/rmse"); 
 l2 = read.table("lrreg/l2");
 

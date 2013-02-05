@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -159,10 +160,16 @@ public class LogisticRegressionWithHashing {
 		  }
 		}
 		if (count < dataset.size) {
-			System.err
-					.println("Warning: the real size of the data is less than the input size: "
+			System.err.println("Warning: the real size of the data is less than the input size: "
 							+ dataset.size + "<" + count);
 		}
+		
+		// Final sweep for delayed regularization
+		Set<Integer> allfeatures = new HashSet<Integer>();
+		for (int i = 0; i < weights.wHashedFeature.length; i++)
+			allfeatures.add(i);
+		performDelayedRegularization(allfeatures, weights, count-1, step, lambda);
+		
 		System.err.println("Done. Total processed instances: " + count);
 		dataset.reset();
 		return weights;
@@ -209,15 +216,15 @@ public class LogisticRegressionWithHashing {
 		int training_size = DataSet.TRAININGSIZE;
 		int testing_size = DataSet.TESTINGSIZE;
 		DataSet training = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/simpledata/train.txt",
+				"data/train.txt",
 				true, training_size);
 		DataSet testing = new DataSet(
-				"/Users/haijieg/workspace/kdd2012/simpledata/test.txt",
+				"data/test.txt",
 				false, testing_size);
-		String solpath = "/Users/haijieg/workspace/kdd2012/simpledata/test_label.txt";
+		String solpath = "data/test_label.txt";
 		LogisticRegressionWithHashing lr = new LogisticRegressionWithHashing();
 		
-		boolean personal = false; // switch this for personalization
+		boolean personal = true; // switch this for personalization
 
 		// filter the testing data that has common users in the training set. 
  		Set<Integer> userInTraining = (new BasicAnalysis()).uniqUsers(training);
@@ -249,7 +256,7 @@ public class LogisticRegressionWithHashing {
   		  
   		  
   		  // save the weights and the prediction
-  			String outpathbase = "/Users/haijieg/workspace/kdd2012/experiments2/lrhashing/";
+  			String outpathbase = "experiments/lrhashing/";
   			String suffix = "_"+dim;
   			BufferedWriter writer = new BufferedWriter(new FileWriter(outpathbase + "weights" + suffix));
   			writer.write(weights.toString());
@@ -266,9 +273,8 @@ public class LogisticRegressionWithHashing {
   				writer.write(loss + "\n");
   			writer.close();
     	}
-  	} else {
-  		
-  	  	double step = 0.01;
+  	} else {  		
+  	  		double step = 0.01;
     		double lambda = 0.001;
     		int[] dims = {12289};
     		for (int dim : dims) {
@@ -281,7 +287,7 @@ public class LogisticRegressionWithHashing {
     		  System.out.println("rmse: " + rmse + "\n");
     		  
     		  // save the weights and the prediction
-    			String outpathbase = "/Users/haijieg/workspace/kdd2012/experiments2/lrpersonal/";
+    			String outpathbase = "experiments/lrpersonal/";
     			String suffix = "_"+dim;
     			BufferedWriter writer = new BufferedWriter(new FileWriter(outpathbase + "weights" + suffix));
     			writer.write(weights.toString());

@@ -1,6 +1,6 @@
-l1 = read.table("lrhashing/loss_97_");
-l2 = read.table("lrhashing/loss_12289_");
-l3 = read.table("lrhashing/loss_1572869_");
+l1 = read.table("lrhashing/loss_97");
+l2 = read.table("lrhashing/loss_12289");
+l3 = read.table("lrhashing/loss_1572869");
 
 end = nrow(l1);
 xs = (1:end) * 100;
